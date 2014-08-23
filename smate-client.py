@@ -16,12 +16,20 @@ def _send_data(args, data):
 def make_file(args, filename):
     data = { 'action': 'open',
              'filepath': os.path.abspath(filename) }
+    if os.path.isdir(filename):
+        print("{0} is directory".format(filename))
+        exit(1)
+
     if 'hostname' in args:
         data['hostname'] = args.hostname
     if not args.no_data:
-        f = open(filename, 'r')
-        data['file_data'] = f.read()
-        f.close()
+        if os.path.isfile(filename) or os.path.islink(filename):
+            f = open(filename, 'r')
+            data['file_data'] = f.read()
+            f.close()
+        elif not os.path.exists(filename):
+            data['file_data'] = ''
+
     return data
 
 def main(args):
