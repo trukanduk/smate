@@ -43,7 +43,7 @@ class _SmateConnectionHandler(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = None
 
-        _log('New connection from ' + str(self.client_address))
+        _log('New connection from {addr}'.format(addr=self.client_address))
         data_file = self.request.makefile('r')
         text_data = data_file.read()
         _log(text_data)
@@ -86,7 +86,7 @@ class _SmateConnectionHandler(socketserver.BaseRequestHandler):
         if not os.path.isfile(got_file):
             out = open(got_file, 'w')
             if 'file_data' in self.data:
-                out.write(self.data['file_data'])
+                out.write(self.data['file_data'].encode('utf-8'))
             out.close()
             created = True
         else:

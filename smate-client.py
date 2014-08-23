@@ -39,7 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('filename', type=str, help='file to load')
     parser.add_argument('-r', dest='reload', action='store_true', default=False, help='if set, file will be reload')
     parser.add_argument('-d', dest='no_data', action='store_true', default=False, help='if set, data won\'t be transferred')
-    parser.add_argument('-s', dest='server', type=str, default='localhost:52693', help='server with smate. default is localhost:527693')
+    parser.add_argument('-s', dest='server', type=str, default='localhost:52693', help='server with smate. default is localhost:52693')
     parser.add_argument('-p', dest='port', type=int, default=None, help='port of server. if set, port from -server option will be overvritten')
     parser.add_argument('-hostname', dest='hostname', type=str, help='name of host in sftp')
     args = parser.parse_args(namespace=args)
