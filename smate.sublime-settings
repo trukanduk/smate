@@ -1,0 +1,15 @@
+{
+    // this argument shouldn't be changed, i think :)
+    "host": "localhost",
+
+    // you should change this field only with smate-client port (on remote server)
+    "port": 52693
+
+    // if true, file will be synchronized with sftp after downloading with smate.
+    // note that if smate-client sends files without content, they will be
+    //     sftp-synchronized in all cases.
+    //,"force_sync_on_download": true
+
+    // will be used as hostname if the field won't be transferred from smate-client
+    //,"default_stfp_server": "sftp server"
+}

@@ -1,0 +1,21 @@
+[
+    {
+        "caption": "smate: Run Server",
+        "command": "smate_run_server"
+    },
+    {
+        "caption": "smate: Stop Server",
+        "command": "smate_stop_server"
+    },
+    {
+        "caption": "smate: Restart Server",
+        "command": "smate_restart_server"
+    },
+    {
+        "caption": "Preferences: smate settings",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/smate/smate.sublime-settings"
+        }
+    }
+]
