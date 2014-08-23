@@ -26,6 +26,79 @@ server_lock = threading.Event()
 def _log(msg):
     print("[smate] {0}".format(msg))
 
+def _activate_window():
+    if sublime.platform() == 'osx':
+        if SBApplication:
+            subl_window = SBApplication.applicationWithBundleIdentifier_("com.sublimetext.2")
+            subl_window.activate()
+        else:
+            os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Sublime Text" to true' ''')
+    elif sublime.platform() == 'linux':
+        subprocess.call("wmctrl -xa 'sublime_text.sublime-text-2'", shell=True)
+
+def _open_file(data):
+    if data == None or 'filepath' not in data:
+        _log('Broken connection')
+        return
+
+    hostname = data.get('hostname', settings.get('default_sftp_server'))
+    if hostname == None:
+        _log('Unknown sftp_server')
+        return
+
+    tempdir = tempfile.gettempdir()
+    sftp_dir = None
+    for dirname in os.listdir(tempdir):
+        full_path = os.path.join(tempdir, dirname)
+        if _SmateConnectionHandler._is_good_dir(full_path, hostname) and \
+           (sftp_dir == None or full_path > sftp_dir):
+            sftp_dir = full_path
+
+    if sftp_dir == None:
+        _log('Alive sftp dir not found')
+        return
+
+    got_file = os.path.join(sftp_dir, hostname) + data['filepath']
+    _log('Sftp dir is {dir}, will write to {file}'.format(dir=sftp_dir, file=got_file))
+
+    if not os.path.isdir(os.path.dirname(got_file)):
+        os.makedirs(os.path.dirname(got_file))
+
+    if not os.path.isfile(got_file):
+        out = open(got_file, 'w')
+        if 'file_data' in data:
+            out.write(data['file_data'].encode('utf-8'))
+        out.close()
+        created = True
+    else:
+        created = False
+
+    if len(sublime.windows()) == 0:
+        sublime.run_command('new_window')
+    sublime.active_window().open_file(got_file)
+
+    if created and (settings.get('force_sync_on_download', True) or 'file_data' not in data):
+        sublime.active_window().run_command('sftp_download_file')
+
+def _multi_command(data):
+    if 'commands' not in data:
+        return
+
+    for command in data['commands']:
+        _parse_command(command, False)
+
+def _parse_command(data, activate_on_done=True):
+    if data.get('action', None) == 'open':
+        _open_file(data)
+    elif data.get('action', None) == 'multi':
+        _multi_command(data)
+    else:
+        _log('unknow action "{action}"'.format(action=self.data.get('action', None)))
+        activate_on_done = False
+
+    if activate_on_done:
+        _activate_window()
+
 class _SmateServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     pass
@@ -49,66 +122,10 @@ class _SmateConnectionHandler(socketserver.BaseRequestHandler):
         _log(text_data)
 
         self.data = json.loads(text_data)
+        sublime.set_timeout(self._go, 0)
 
-        if self.data.get('action', None) == 'open':
-            sublime.set_timeout(self._open_file, 0)
-        else:
-            _log('unknow action "{action}"'.format(action=self.data.get('action', None)))
-
-    def _open_file(self):
-        if self.data == None or 'filepath' not in self.data:
-            _log('Broken connection')
-            return
-
-        hostname = self.data.get('hostname', settings.get('default_sftp_server'))
-        if hostname == None:
-            _log('Unknown sftp_server')
-            return
-
-        tempdir = tempfile.gettempdir()
-        sftp_dir = None
-        for dirname in os.listdir(tempdir):
-            full_path = os.path.join(tempdir, dirname)
-            if _SmateConnectionHandler._is_good_dir(full_path, hostname) and \
-               (sftp_dir == None or full_path > sftp_dir):
-                sftp_dir = full_path
-
-        if sftp_dir == None:
-            _log('Alive sftp dir not found')
-            return
-
-        got_file = os.path.join(sftp_dir, hostname) + self.data['filepath']
-        _log('Sftp dir is {dir}, will write to {file}'.format(dir=sftp_dir, file=got_file))
-
-        if not os.path.isdir(os.path.dirname(got_file)):
-            os.makedirs(os.path.dirname(got_file))
-
-        if not os.path.isfile(got_file):
-            out = open(got_file, 'w')
-            if 'file_data' in self.data:
-                out.write(self.data['file_data'].encode('utf-8'))
-            out.close()
-            created = True
-        else:
-            created = False
-
-        if len(sublime.windows()) == 0:
-            sublime.run_command('new_window')
-        sublime.active_window().open_file(got_file)
-
-        if created and (settings.get('force_sync_on_download', True) or 'file_data' not in self.data):
-            sublime.active_window().run_command('sftp_download_file')
-
-        if sublime.platform() == 'osx':
-            if SBApplication:
-                subl_window = SBApplication.applicationWithBundleIdentifier_("com.sublimetext.2")
-                subl_window.activate()
-            else:
-                os.system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Sublime Text" to true' ''')
-        elif sublime.platform() == 'linux':
-            subprocess.call("wmctrl -xa 'sublime_text.sublime-text-2'", shell=True)
-
-        self.data = None
+    def _go(self):
+        _parse_command(self.data)
 
 def _server_serve():
     global server, server_lock

@@ -13,15 +13,25 @@ def _send_data(args, data):
     sock.shutdown(socket.SHUT_RDWR)
     sock.close()
 
-def main(args):
+def make_file(args, filename):
     data = { 'action': 'open',
-             'filepath': os.path.abspath(args.filename) }
+             'filepath': os.path.abspath(filename) }
     if 'hostname' in args:
         data['hostname'] = args.hostname
     if not args.no_data:
-        f = open(args.filename, 'r')
+        f = open(filename, 'r')
         data['file_data'] = f.read()
         f.close()
+    return data
+
+def main(args):
+    data = { 'action': 'multi',
+             'commands': [] }
+
+    for filename in args.filenames:
+        command = make_file(args, filename)
+        data['commands'].append(command)
+
     _send_data(args, data)
 
 if __name__ == '__main__':
@@ -36,7 +46,7 @@ if __name__ == '__main__':
         args.no_data = os.getenv('SMATE_NO_DATA')
 
     parser = argparse.ArgumentParser(description='smate client')
-    parser.add_argument('filename', type=str, help='file to load')
+    parser.add_argument('filenames', nargs='+', help='file(s) to load')
     parser.add_argument('-r', dest='reload', action='store_true', default=False, help='if set, file will be reload')
     parser.add_argument('-d', dest='no_data', action='store_true', default=False, help='if set, data won\'t be transferred')
     parser.add_argument('-s', dest='server', type=str, default='localhost:52693', help='server with smate. default is localhost:52693')
